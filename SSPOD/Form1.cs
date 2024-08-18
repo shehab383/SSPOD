@@ -14,33 +14,31 @@ namespace SSPOD
     public partial class Form1 : Form
     {
         private List<string> receivedDataList = new List<string>();
+        private List<Task> taskList = new List<Task>();
         int i = 0;
         public Form1()
         {
             InitializeComponent();
-            List<string> NEWLIST = new List<string>();
-            NEWLIST.Add("1 , 2");
-            NEWLIST.Add("2 , 4");
-            NEWLIST.Add("4 , 6");
-            NEWLIST.Add("6 , 7");
-            NEWLIST.Add("20 , 30");
-            //DrawFromList(NEWLIST);
+          
 
-            //AddTaskToChart(chart1, new Task("task1", 1, 4));
-            //AddTaskToChart(chart1, new Task("task2", 4, 6));
-            //AddTaskToChart(chart1, new Task("task3", 8, 9));
-            //AddTaskToChart(chart1, new Task("task3", 9, 11));
-            //AddTaskToChart(chart1, new Task("task3", 11, 14));
-            //AddTaskToChart(chart1, new Task("task3", 15, 20));
-            //AddTaskToChart(chart1, new Task("task3", 21, 25));
         }
-        public void DrawFromList(List<string> list)
-        {
+        public void DrawFromList(List<Task> list)
+        {  
            
-            foreach (string data in list)
+            foreach (Task task in list)
             {
-                int[] numbers = GetNumbersAsArray(data);
-                AddTaskToChart(new Task("task" + i++, numbers[0], numbers[1]));
+              
+       
+
+                   
+
+
+                    taskList.Add(task);
+                    AddTaskToChart(task);
+                    // Update CPU usage at start
+                    float cpuUsage = CalculateCpuUsage();
+                    textBox1.Text = $"Average CPU Usage: {cpuUsage:F2}%";
+                
 
             }
 
@@ -88,20 +86,81 @@ namespace SSPOD
             this.Refresh();
         }
 
+        private int CalculateTotalTime()
+        {
+            if (taskList.Count == 0)
+                return 0;
+
+            // Total time from the start of the first task to the end of the last task
+            int totalTime = taskList.Last().EndValue;
+            return totalTime;
+        }
+
+        private int CalculateIdleTime()
+        {
+            int idleTime = 0;
+
+            // Ensure tasks are ordered by start time
+            var orderedTasks = taskList.OrderBy(t => t.StartValue).ToList();
+
+            // Calculate idle time between consecutive tasks
+            for (int i = 1; i < orderedTasks.Count; i++)
+            {
+                idleTime += orderedTasks[i].StartValue - orderedTasks[i - 1].EndValue;
+            }
+
+            return idleTime;
+        }
+
+        private float CalculateCpuUsage()
+        {
+            int totalTime = CalculateTotalTime();
+            if (totalTime == 0)
+                return 0;
+
+            int idleTime = CalculateIdleTime();
+            int busyTime = totalTime - idleTime;
+            return (busyTime / (float)totalTime) * 100;
+        }
+
+        private void label1_Click(object sender, EventArgs e)
+        {
+
+        }
     }
 
 
     public class Task
     {
         public string TaskName { get; set; }
-        public double StartValue { get; set; }
-        public double EndValue { get; set; }
+        public int StartValue { get; set; }
+        public int EndValue { get; set; }
 
-        public Task(string taskName, double startValue, double endValue)
+        public Task(string taskName, int startValue, int endValue)
         {
             TaskName = taskName;
             StartValue = startValue;
             EndValue = endValue;
+        }
+       public static Task GetTaskDetails(string task)
+        {
+            // Split the string by the comma
+            string[] parts = task.Split(',');
+
+            // Check that the split resulted in exactly three parts
+            if (parts.Length == 3)
+            {
+                string taskName = parts[0].Trim();
+                if (int.TryParse(parts[1].Trim(), out int start) && int.TryParse(parts[2].Trim(), out int end))
+                {
+                    // Return the parsed task details
+                    return new Task(taskName, start, end);  
+        
+                }
+            }
+
+            // Return null if the string could not be parsed correctly
+            return null;
         }
     }
 }
